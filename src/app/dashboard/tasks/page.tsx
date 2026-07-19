@@ -6,6 +6,7 @@ import { type Task, type Profile } from '@/lib/types';
 import { isToday, isThisWeek, parseISO, isPast, isTomorrow } from 'date-fns';
 import { Plus, Check, Circle, Calendar as CalIcon, Building2, Trash2, Navigation } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import Link from 'next/link';
 
 export default function TasksPage() {
   const supabase = createClient();
@@ -85,7 +86,7 @@ export default function TasksPage() {
     
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert({
           user_id: assigneeId || user.id,
@@ -98,7 +99,10 @@ export default function TasksPage() {
         .select('*, organizations(name)')
         .single();
         
-      if (data) {
+      if (error) {
+        alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+        console.error(error);
+      } else if (data) {
         setTasks([...tasks, data].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()));
         setNewTaskTitle('');
         setNewTaskOrgId('');
@@ -363,7 +367,16 @@ function TaskCard({
                new Intl.DateTimeFormat('th-TH', { weekday: 'short', day: 'numeric', month: 'short' }).format(parseISO(task.due_date))}
             </span>
             
-            {task.organizations?.name && (
+            {task.organizations?.name && task.org_id && (
+              <Link href={`/dashboard/organizations/${task.org_id}`} className="hover:opacity-80 transition-opacity">
+                <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium cursor-pointer">
+                  <Building2 size={12} />
+                  {task.organizations.name}
+                </span>
+              </Link>
+            )}
+            
+            {task.organizations?.name && !task.org_id && (
               <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">
                 <Building2 size={12} />
                 {task.organizations.name}
