@@ -343,8 +343,8 @@ export default function OrgDetailPage() {
           <InfoCard icon={<Phone size={18} />} title="ช่องทางติดต่อกลาง">
             {editMode ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="label">เบอร์กลาง</label><input type="tel" className="input-field text-sm" value={editData.phone_main || ''} onChange={(e) => setEditData(d => ({ ...d, phone_main: e.target.value }))} /></div>
-                <div><label className="label">อีเมลกลาง</label><input type="email" className="input-field text-sm" value={editData.email_main || ''} onChange={(e) => setEditData(d => ({ ...d, email_main: e.target.value }))} /></div>
+                <div><label className="label">เบอร์กลาง</label><input type="text" className="input-field text-sm" placeholder="ใส่หลายเบอร์คั่นด้วย ," value={editData.phone_main || ''} onChange={(e) => setEditData(d => ({ ...d, phone_main: e.target.value }))} /></div>
+                <div><label className="label">อีเมลกลาง</label><input type="text" className="input-field text-sm" placeholder="ใส่หลายอีเมลคั่นด้วย ," value={editData.email_main || ''} onChange={(e) => setEditData(d => ({ ...d, email_main: e.target.value }))} /></div>
               </div>
             ) : (
               <div className="flex flex-col gap-3 text-sm">
@@ -367,8 +367,8 @@ export default function OrgDetailPage() {
                       <p className="text-sm font-bold mb-3 text-gray-900">{titles[deptKey]}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">ชื่อ</label><input className="input-field text-sm bg-white" value={dept.name || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, name: e.target.value } }))} /></div>
-                        <div><label className="label">เบอร์</label><input className="input-field text-sm bg-white" value={dept.phone || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, phone: e.target.value } }))} /></div>
-                        <div><label className="label">อีเมล</label><input className="input-field text-sm bg-white" value={dept.email || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, email: e.target.value } }))} /></div>
+                        <div><label className="label">เบอร์</label><input className="input-field text-sm bg-white" placeholder="คั่นด้วย ," value={dept.phone || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, phone: e.target.value } }))} /></div>
+                        <div><label className="label">อีเมล</label><input className="input-field text-sm bg-white" placeholder="คั่นด้วย ," value={dept.email || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, email: e.target.value } }))} /></div>
                         <div><label className="label">LINE</label><input className="input-field text-sm bg-white" value={dept.line_id || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, line_id: e.target.value } }))} /></div>
                       </div>
                     </div>

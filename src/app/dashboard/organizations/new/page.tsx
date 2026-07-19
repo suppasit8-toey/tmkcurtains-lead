@@ -231,11 +231,11 @@ export default function NewOrganizationPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">เบอร์กลาง</label>
-            <input type="tel" className="input-field" placeholder="02-xxx-xxxx" value={form.phone_main} onChange={(e) => set('phone_main', e.target.value)} />
+            <input type="text" className="input-field" placeholder="ใส่หลายเบอร์คั่นด้วย , (เช่น 02-xxx, 081-xxx)" value={form.phone_main} onChange={(e) => set('phone_main', e.target.value)} />
           </div>
           <div>
             <label className="label">อีเมลกลาง</label>
-            <input type="email" className="input-field" placeholder="info@hospital.com" value={form.email_main} onChange={(e) => set('email_main', e.target.value)} />
+            <input type="text" className="input-field" placeholder="ใส่หลายอีเมลคั่นด้วย , (เช่น a@a.com, b@b.com)" value={form.email_main} onChange={(e) => set('email_main', e.target.value)} />
           </div>
         </div>
       </Section>
@@ -311,11 +311,11 @@ function DeptForm({
         </div>
         <div>
           <label className="label text-[11px]">เบอร์โทร</label>
-          <input type="tel" className="input-field text-sm py-2" placeholder="08x-xxx-xxxx" value={dept.phone} onChange={(e) => onChange('phone', e.target.value)} />
+          <input type="text" className="input-field text-sm py-2" placeholder="ใส่หลายเบอร์คั่นด้วย ," value={dept.phone} onChange={(e) => onChange('phone', e.target.value)} />
         </div>
         <div>
           <label className="label text-[11px]">อีเมล</label>
-          <input type="email" className="input-field text-sm py-2" placeholder="email@example.com" value={dept.email} onChange={(e) => onChange('email', e.target.value)} />
+          <input type="text" className="input-field text-sm py-2" placeholder="ใส่หลายอีเมลคั่นด้วย ," value={dept.email} onChange={(e) => onChange('email', e.target.value)} />
         </div>
         <div>
           <label className="label text-[11px]">LINE ID</label>
