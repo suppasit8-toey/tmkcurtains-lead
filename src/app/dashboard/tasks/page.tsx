@@ -45,7 +45,7 @@ export default function TasksPage() {
       
       const myProfile = profRes.data;
       const allTasks = taskRes.data || [];
-      const isManager = myProfile?.role === 'manager' || myProfile?.full_name === 'เต้ย';
+      const isManager = myProfile?.role === 'manager' || myProfile?.full_name?.includes('เต้ย');
       const visibleTasks = isManager ? allTasks : allTasks.filter(t => t.user_id === user.id);
       
       setTasks(visibleTasks);
@@ -54,7 +54,7 @@ export default function TasksPage() {
     fetchData();
   }, [supabase]);
 
-  const isManager = profile?.role === 'manager' || profile?.full_name === 'เต้ย';
+  const isManager = profile?.role === 'manager' || profile?.full_name?.includes('เต้ย');
 
   const handleToggleTask = async (task: Task) => {
     const newStatus = !task.is_completed;
