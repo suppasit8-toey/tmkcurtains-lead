@@ -66,6 +66,7 @@ export interface Task {
   user_id: string;
   org_id: string | null;
   title: string;
+  location?: string | null;
   due_date: string;
   is_completed: boolean;
   created_at: string;

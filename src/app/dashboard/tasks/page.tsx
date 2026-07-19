@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { type Task, type Profile } from '@/lib/types';
 import { isToday, isThisWeek, parseISO, isPast, isTomorrow } from 'date-fns';
-import { Plus, Check, Circle, Calendar as CalIcon, Building2, Trash2 } from 'lucide-react';
+import { Plus, Check, Circle, Calendar as CalIcon, Building2, Trash2, Navigation } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function TasksPage() {
@@ -12,12 +12,15 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
+  const [allOrgs, setAllOrgs] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState<string>('all');
   
   // New task form
   const [showForm, setShowForm] = useState(false);
+  const [newTaskOrgId, setNewTaskOrgId] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskLocation, setNewTaskLocation] = useState('');
   const [newTaskDate, setNewTaskDate] = useState(new Date().toISOString().split('T')[0]);
   const [assigneeId, setAssigneeId] = useState('');
   const [savingTask, setSavingTask] = useState(false);
@@ -27,14 +30,16 @@ export default function TasksPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profRes, allProfRes, taskRes] = await Promise.all([
+      const [profRes, allProfRes, taskRes, orgsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('profiles').select('*').order('full_name', { ascending: true }),
-        supabase.from('tasks').select('*, organizations(name)').order('due_date', { ascending: true })
+        supabase.from('tasks').select('*, organizations(name)').order('due_date', { ascending: true }),
+        supabase.from('organizations').select('id, name').order('name', { ascending: true })
       ]);
 
       setProfile(profRes.data);
       setAllProfiles(allProfRes.data || []);
+      setAllOrgs(orgsRes.data || []);
       setAssigneeId(user.id);
       
       const myProfile = profRes.data;
@@ -84,7 +89,9 @@ export default function TasksPage() {
         .from('tasks')
         .insert({
           user_id: assigneeId || user.id,
+          org_id: newTaskOrgId || null,
           title: newTaskTitle.trim(),
+          location: newTaskLocation.trim() || null,
           due_date: newTaskDate,
           is_completed: false
         })
@@ -94,6 +101,8 @@ export default function TasksPage() {
       if (data) {
         setTasks([...tasks, data].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()));
         setNewTaskTitle('');
+        setNewTaskOrgId('');
+        setNewTaskLocation('');
         setShowForm(false);
       }
     }
@@ -169,19 +178,50 @@ export default function TasksPage() {
 
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-fade-in border-2 border-blue-100">
-          <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1 w-full">
-              <label className="label">ชื่องาน <span className="text-red-500">*</span></label>
-              <input 
-                className="input-field py-2.5" 
-                placeholder="เช่น โทรติดตามลูกค้า A..." 
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                autoFocus
-                required 
-              />
+          <form onSubmit={handleAddTask} className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="label">องค์กร (เพื่อดึงชื่องาน)</label>
+                <select 
+                  className="input-field py-2.5" 
+                  value={newTaskOrgId}
+                  onChange={(e) => {
+                    const orgId = e.target.value;
+                    setNewTaskOrgId(orgId);
+                    const orgName = allOrgs.find(o => o.id === orgId)?.name;
+                    if (orgName) setNewTaskTitle(`ติดต่อ ${orgName}`);
+                  }}
+                >
+                  <option value="">- เลือกองค์กร (ไม่บังคับ) -</option>
+                  {allOrgs.map(o => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="label">ชื่องาน <span className="text-red-500">*</span></label>
+                <input 
+                  className="input-field py-2.5" 
+                  placeholder="เช่น โทรติดตามลูกค้า A..." 
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  autoFocus
+                  required 
+                />
+              </div>
             </div>
-            <div className="w-full sm:w-48">
+            
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="label">สถานที่ / ตำแหน่ง</label>
+                <input 
+                  className="input-field py-2.5" 
+                  placeholder="ระบุพิกัด หรือสถานที่..." 
+                  value={newTaskLocation}
+                  onChange={(e) => setNewTaskLocation(e.target.value)}
+                />
+              </div>
+              <div className="w-full sm:w-40">
               <label className="label">วันที่</label>
               <input 
                 type="date" 
@@ -192,7 +232,7 @@ export default function TasksPage() {
               />
             </div>
             {isManager && (
-              <div className="w-full sm:w-48">
+              <div className="w-full sm:w-40">
                 <label className="label">มอบหมายให้</label>
                 <select 
                   className="input-field py-2.5" 
@@ -211,6 +251,7 @@ export default function TasksPage() {
               <button type="submit" className="btn-primary py-2.5 px-6 flex-1" disabled={savingTask}>
                 {savingTask ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
+            </div>
             </div>
           </form>
         </div>
@@ -328,6 +369,14 @@ function TaskCard({
                 {task.organizations.name}
               </span>
             )}
+
+            {task.location && (
+              <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
+                <Navigation size={12} />
+                {task.location}
+              </span>
+            )}
+            
             {assigneeName && (
               <span className="flex items-center gap-1 text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-medium">
                 👤 {assigneeName}
