@@ -10,8 +10,9 @@ import {
   PROVINCES,
 } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Building2, Phone, Users, Lightbulb, MapPin, Navigation } from 'lucide-react';
+import { Save, User, Building2, Phone, MapPin, CheckCircle2, ChevronDown, Clock, Loader2, Navigation, Users, Lightbulb, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import MultiInput from '@/components/MultiInput';
 import { extractMapCoordinates, calculateDistance, fetchProvinceFromCoords, TMK_LAT, TMK_LNG } from '@/lib/utils';
 
 const ALL_STATUSES: OrgStatus[] = [
@@ -230,12 +231,10 @@ export default function NewOrganizationPage() {
       <Section icon={<Phone size={18} />} title="2. ช่องทางติดต่อกลาง">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">เบอร์กลาง</label>
-            <input type="text" className="input-field" placeholder="ใส่หลายเบอร์คั่นด้วย , (เช่น 02-xxx, 081-xxx)" value={form.phone_main} onChange={(e) => set('phone_main', e.target.value)} />
+            <MultiInput label="เบอร์กลาง" type="tel" placeholder="02-xxx-xxxx" value={form.phone_main} onChange={(val) => set('phone_main', val)} />
           </div>
           <div>
-            <label className="label">อีเมลกลาง</label>
-            <input type="text" className="input-field" placeholder="ใส่หลายอีเมลคั่นด้วย , (เช่น a@a.com, b@b.com)" value={form.email_main} onChange={(e) => set('email_main', e.target.value)} />
+            <MultiInput label="อีเมลกลาง" type="email" placeholder="email@example.com" value={form.email_main} onChange={(val) => set('email_main', val)} />
           </div>
         </div>
       </Section>
@@ -310,12 +309,10 @@ function DeptForm({
           <input type="text" className="input-field text-sm py-2" placeholder="ชื่อ-นามสกุล" value={dept.name} onChange={(e) => onChange('name', e.target.value)} />
         </div>
         <div>
-          <label className="label text-[11px]">เบอร์โทร</label>
-          <input type="text" className="input-field text-sm py-2" placeholder="ใส่หลายเบอร์คั่นด้วย ," value={dept.phone} onChange={(e) => onChange('phone', e.target.value)} />
+          <MultiInput label="เบอร์โทร" type="tel" placeholder="08x-xxx-xxxx" value={dept.phone} onChange={(val) => onChange('phone', val)} />
         </div>
         <div>
-          <label className="label text-[11px]">อีเมล</label>
-          <input type="text" className="input-field text-sm py-2" placeholder="ใส่หลายอีเมลคั่นด้วย ," value={dept.email} onChange={(e) => onChange('email', e.target.value)} />
+          <MultiInput label="อีเมล" type="email" placeholder="email@example.com" value={dept.email} onChange={(val) => onChange('email', val)} />
         </div>
         <div>
           <label className="label text-[11px]">LINE ID</label>

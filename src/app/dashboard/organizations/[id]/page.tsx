@@ -9,6 +9,7 @@ import {
 } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import MultiInput from '@/components/MultiInput';
 import {
   ArrowLeft, Edit2, Trash2, Save, X, Plus, Phone, Mail,
   MessageSquare, FileText, CheckCircle2, Building2, Users, Lightbulb,
@@ -343,13 +344,13 @@ export default function OrgDetailPage() {
           <InfoCard icon={<Phone size={18} />} title="ช่องทางติดต่อกลาง">
             {editMode ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="label">เบอร์กลาง</label><input type="text" className="input-field text-sm" placeholder="ใส่หลายเบอร์คั่นด้วย ," value={editData.phone_main || ''} onChange={(e) => setEditData(d => ({ ...d, phone_main: e.target.value }))} /></div>
-                <div><label className="label">อีเมลกลาง</label><input type="text" className="input-field text-sm" placeholder="ใส่หลายอีเมลคั่นด้วย ," value={editData.email_main || ''} onChange={(e) => setEditData(d => ({ ...d, email_main: e.target.value }))} /></div>
+                <div><MultiInput label="เบอร์กลาง" type="tel" placeholder="02-xxx-xxxx" value={editData.phone_main} onChange={(val) => setEditData(d => ({ ...d, phone_main: val }))} /></div>
+                <div><MultiInput label="อีเมลกลาง" type="email" placeholder="email@example.com" value={editData.email_main} onChange={(val) => setEditData(d => ({ ...d, email_main: val }))} /></div>
               </div>
             ) : (
               <div className="flex flex-col gap-3 text-sm">
-                {org.phone_main && <div className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Phone size={14} /></div><span className="font-medium text-gray-900">{org.phone_main}</span></div>}
-                {org.email_main && <div className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Mail size={14} /></div><span className="font-medium text-gray-900">{org.email_main}</span></div>}
+                {org.phone_main && org.phone_main.split(',').map((p, i) => <div key={i} className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Phone size={14} /></div><span className="font-medium text-gray-900">{p.trim()}</span></div>)}
+                {org.email_main && org.email_main.split(',').map((e, i) => <div key={i} className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Mail size={14} /></div><span className="font-medium text-gray-900">{e.trim()}</span></div>)}
                 {!org.phone_main && !org.email_main && <span className="text-gray-400 italic">ยังไม่มีข้อมูล</span>}
               </div>
             )}
@@ -367,8 +368,8 @@ export default function OrgDetailPage() {
                       <p className="text-sm font-bold mb-3 text-gray-900">{titles[deptKey]}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div><label className="label">ชื่อ</label><input className="input-field text-sm bg-white" value={dept.name || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, name: e.target.value } }))} /></div>
-                        <div><label className="label">เบอร์</label><input className="input-field text-sm bg-white" placeholder="คั่นด้วย ," value={dept.phone || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, phone: e.target.value } }))} /></div>
-                        <div><label className="label">อีเมล</label><input className="input-field text-sm bg-white" placeholder="คั่นด้วย ," value={dept.email || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, email: e.target.value } }))} /></div>
+                        <div><MultiInput label="เบอร์" type="tel" placeholder="08x-xxx-xxxx" value={dept.phone} onChange={(val) => setEditData(d => ({ ...d, [deptKey]: { ...dept, phone: val } }))} /></div>
+                        <div><MultiInput label="อีเมล" type="email" placeholder="email@example.com" value={dept.email} onChange={(val) => setEditData(d => ({ ...d, [deptKey]: { ...dept, email: val } }))} /></div>
                         <div><label className="label">LINE</label><input className="input-field text-sm bg-white" value={dept.line_id || ''} onChange={(e) => setEditData(d => ({ ...d, [deptKey]: { ...dept, line_id: e.target.value } }))} /></div>
                       </div>
                     </div>
@@ -383,8 +384,8 @@ export default function OrgDetailPage() {
                       <p className="text-sm font-bold mb-3 text-gray-900">{label}</p>
                       <div className="text-sm flex flex-col gap-2 text-gray-700">
                         <span className="font-medium text-gray-900">{dept.name}</span>
-                        {dept.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400" />{dept.phone}</div>}
-                        {dept.email && <div className="flex items-center gap-2"><Mail size={14} className="text-gray-400" />{dept.email}</div>}
+                        {dept.phone && dept.phone.split(',').map((p, i) => <div key={i} className="flex items-center gap-2"><Phone size={14} className="text-gray-400" />{p.trim()}</div>)}
+                        {dept.email && dept.email.split(',').map((e, i) => <div key={i} className="flex items-center gap-2"><Mail size={14} className="text-gray-400" />{e.trim()}</div>)}
                         {dept.line_id && <div className="flex items-center gap-2"><span className="text-xs font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">LINE</span>{dept.line_id}</div>}
                       </div>
                     </div>
