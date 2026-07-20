@@ -4,14 +4,15 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   STATUS_LABELS, STATUS_COLORS,
+  CONTACT_DEPT_LABELS, CONTACT_DEPT_COLORS,
   type Organization, type ConversationHistory, type Quotation,
-  type CompletedOrder, type OrgStatus, type Department, type OrgCategoryData,
+  type CompletedOrder, type OrgStatus, type Department, type OrgCategoryData, type ContactDept,
 } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MultiInput from '@/components/MultiInput';
 import {
-  ArrowLeft, Edit2, Trash2, Save, X, Plus, Phone, Mail,
+  ArrowLeft, Edit2, Trash2, Save, X, Plus, Phone, Mail, Clock,
   MessageSquare, FileText, CheckCircle2, Building2, Users, Lightbulb,
   Calendar, ChevronDown, ChevronUp, MapPin, Navigation, Map as MapIcon, ExternalLink
 } from 'lucide-react';
@@ -22,6 +23,61 @@ const ALL_STATUSES: OrgStatus[] = ['new_lead','contacted','presented','quoted','
 const STATUS_LABEL_MAP = STATUS_LABELS;
 
 type TabId = 'info' | 'conversations' | 'quotations' | 'orders';
+
+// ===== Script Templates per Department =====
+const SCRIPT_TEMPLATES: Record<ContactDept, { label: string; script: string }[]> = {
+  phone_main: [
+    {
+      label: '🏢 แนะนำตัว + สอบถามฝ่ายที่ดูแล',
+      script: `สวัสดีค่ะ ติดต่อจาก TMK Curtains นะคะ\nพอดีอยากนำเสนอแคมเปญผ้าม่าน วอลล์เปเปอร์ และฟิล์มอาคารค่ะ\nปกติแล้วต้องติดต่อฝ่ายไหนหรือท่านไหนคะ?`,
+    },
+    {
+      label: '📞 ขอต่อสาย / ขอเบอร์ติดต่อ',
+      script: `ขอบคุณมากค่ะ รบกวนขอต่อสายได้ไหมคะ?\n\n(ถ้าต่อสายไม่ได้)\nไม่เป็นไรค่ะ สะดวกให้ติดต่ออีกครั้งเป็นช่วงเวลาไหนคะ?\nหรือรบกวนขอเบอร์ตรงหรือ LINE ได้ไหมคะ?`,
+    },
+    {
+      label: '🔁 โทรติดตาม (Follow up)',
+      script: `สวัสดีค่ะ ปอจาก TMK Curtains นะคะ\nเมื่อวันที่ [วันที่] ปอได้โทรมาเรื่องแคมเปญผ้าม่าน วอลล์เปเปอร์ และฟิล์มอาคารค่ะ\nรบกวนต่อสายไปยังฝ่าย [ชื่อฝ่าย] ได้ไหมคะ?`,
+    },
+  ],
+  purchase_dept: [
+    {
+      label: '🤝 แนะนำตัว + แคมเปญทดลองฟรี',
+      script: `สวัสดีค่ะ ปอจาก TMK Curtains นะคะ\nขออนุญาตรบกวนเวลาสัก 2 นาทีค่ะ\n\nทางเราดูแลด้านกาออกแบบและติดตั้งผ้าม่าน วอลล์เปเปอร์ และฟิล์มอาคารค่ะ\nตอนนี้เรามีแคมเปญพิเศษสำหรับองค์กรโดยเฉพาะค่ะ\nคือ ทดลองติดตั้งให้ฟรี ซึ่งสามารถเลือกได้ค่ะว่าจะทดลองเป็นผ้าม่าน วอลล์เปเปอร์ หรือฟิล์มอาคาร\nเพื่อดูคุณภาพงานจริงก่อนตัดสินใจค่ะ\n\nสะดวกให้ปอส่งข้อมูลเพิ่มเติมให้ทาง LINE หรือ Email ดีคะ?`,
+    },
+    {
+      label: '💰 สอบถามงบประมาณ + ไทม์ไลน์',
+      script: `ไม่ทราบว่าตอนนี้ทางองค์กรมีงบประมาณสำหรับงานผ้าม่าน/วอลล์เปเปอร์/ฟิล์มอาคาร อยู่ในช่วงไหนคะ?\nและมีไทม์ไลน์ที่ต้องการติดตั้งให้เสร็จภายในเมื่ไหร่คะ?\n\nปอจะได้จัดเตรียมใบเสนอราคาให้ตรงกับความต้องการค่ะ`,
+    },
+    {
+      label: '📄 ส่งใบเสนอราคา + ติดตาม',
+      script: `สวัสดีค่ะ ปอจาก TMK Curtains นะคะ\nปอได้ส่งใบเสนอราคาไปทาง [Email/LINE] เรียบร้อยแล้วนะคะ\n\nไม่ทราบว่าได้รับและมีโอกาสพิจารณาแล้วหรือยังคะ?\nถ้ามีข้อสงสัยหรืออยากปรับรายละเอียด ยินดีปรับให้ค่ะ`,
+    },
+    {
+      label: '🔄 สอบถามขั้นตอนจัดซื้อ',
+      script: `ขอสอบถามขั้นตอนการจัดซื้อของทางองค์กรนะคะ\n- ต้องยื่นเอกสารอะไรบ้างคะ?\n- มีการเปรียบเทียบราคากี่เจ้าคะ?\n- ใช้เวลาอนุมัติประมาณกี่วันคะ?\n\nเพื่อปอจะได้เตรียมเอกสารให้ครบถ้วนค่ะ`,
+    },
+  ],
+  building_dept: [
+    {
+      label: '🏗️ แนะนำตัว + แคมเปญทดลองฟรี',
+      script: `สวัสดีค่ะ ปอจาก TMK Curtains นะคะ\nขออนุญาตรบกวนเวลาสัก 2 นาทีค่ะ\n\nทางเราดูแลด้านกาออกแบบและติดตั้งผ้าม่าน วอลล์เปเปอร์ และฟิล์มอาคารค่ะ\nตอนนี้มีแคมเปญพิเศษ ทดลองติดตั้งให้ฟรี เลือกได้เลยค่ะว่าจะทดลองเป็นผ้าม่าน วอลล์เปเปอร์ หรือฟิล์ม\nเพื่อดูคุณภาพงานจริงก่อนตัดสินใจค่ะ\n\nไม่ทราบว่าตอนนี้ในอาคารมีห้องไหนที่ต้องเปลี่ยนหรือติดตั้งเพิ่มเติมบ้างคะ?`,
+    },
+    {
+      label: '📏 ขอนัดสำรวจหน้างาน',
+      script: `ปออยากขอนัดเข้าสำรวจหน้างานเพื่อวัดขนาดและดูสภาพจริงค่ะ\nจะได้ออกแบบและเสนอราคาได้ตรงกับควาต้องการ\n\nไม่ทราบว่าสะดวกวันไหนคะ? ใช้เวลาประมาณ 30-60 นาทีค่ะ`,
+    },
+    {
+      label: '🔧 สอบถามปัญหาที่พบ',
+      script: `อยากสอบถามว่าตอนนี้มีปัญหาเรื่องผ้าม่านหรือมู่ลี่ในอาคารบ้างไหมคะ? เช่น:\n- ผ้าม่านเก่า ขาด หรือสีซีด\n- มู่ลี่ชำรุด ดึงไม่ขึ้น\n- แสงเข้ามากเกินไป\n- วอลล์เปเปอร์ลอก หรือเก่า\n\nเรามีทีมช่างพร้อมเข้าดูแล และตอนนี้มีแคมเปญทดลองติดตั้งฟรีด้วยค่ะ`,
+    },
+    {
+      label: '📐 ขอข้อมูลเพื่เสนอราคา',
+      script: `สำหรับการเสนอราคา ปออยากขอข้อมูลเพิ่มเติมนะคะ:\n- จำนวนห้อง/หน้าต่างที่ต้องการ\n- ขนาดหน้าต่างโดยประมาณ (กว้าง x สูง)\n- ประเภทที่สนใจ (ผ้าม่าน/วอลล์เปเปอร์/ฟิล์มอาคาร)\n- มีงบประมาณคร่าวๆ ไหมคะ?\n\nปอจะได้จัดเตรียมใบเสนอราคาให้ตรงกับความต้องการค่ะ`,
+    },
+  ],
+};
+
 
 export default function OrgDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +99,20 @@ export default function OrgDetailPage() {
 
   // Conversation form
   const [showConvForm, setShowConvForm] = useState(false);
-  const [convForm, setConvForm] = useState({ date: new Date().toISOString().split('T')[0], channel: 'โทรศัพท์', summary: '', next_action: '' });
+  const [convForm, setConvForm] = useState({ date: new Date().toISOString().split('T')[0], time: '09:27', channel: 'โทรศัพท์', contact_dept: '' as string, summary: '', next_action: '' });
+  const [showScripts, setShowScripts] = useState(false);
+  const [activeScript, setActiveScript] = useState<{ dept: ContactDept; idx: number; text: string } | null>(null);
+  const [customScripts, setCustomScripts] = useState(SCRIPT_TEMPLATES);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('tmk_script_templates');
+    if (saved) {
+      try { setCustomScripts(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editConvData, setEditConvData] = useState({summary: '', next_action: '', channel: '', contact_dept: '', date: '', time: ''});
+  const [savingEditConv, setSavingEditConv] = useState(false);
   const [savingConv, setSavingConv] = useState(false);
 
   // Quotation form
@@ -92,11 +161,39 @@ export default function OrgDetailPage() {
   const handleSaveConv = async () => {
     setSavingConv(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('conversation_history').insert({ ...convForm, org_id: id, user_id: user!.id });
-    setConvForm({ date: new Date().toISOString().split('T')[0], channel: 'โทรศัพท์', summary: '', next_action: '' });
+    await supabase.from('conversation_history').insert({
+      ...convForm,
+      contact_dept: convForm.contact_dept || null,
+      time: convForm.time || null,
+      org_id: id,
+      user_id: user!.id,
+    });
+    setConvForm({ date: new Date().toISOString().split('T')[0], time: '09:27', channel: 'โทรศัพท์', contact_dept: '', summary: '', next_action: '' });
     setShowConvForm(false);
+    setShowScripts(false);
     fetchAll();
     setSavingConv(false);
+  };
+
+  const handleUpdateConv = async (convId: string) => {
+    setSavingEditConv(true);
+    await supabase.from('conversation_history').update({
+      summary: editConvData.summary,
+      next_action: editConvData.next_action || null,
+      channel: editConvData.channel,
+      contact_dept: editConvData.contact_dept || null,
+      date: editConvData.date,
+      time: editConvData.time || null,
+    }).eq('id', convId);
+    setEditingConvId(null);
+    fetchAll();
+    setSavingEditConv(false);
+  };
+
+  const handleDeleteConv = async (convId: string) => {
+    if (!confirm('ต้องการลบประวัติการพูดคุยนี้หรือไม่?')) return;
+    await supabase.from('conversation_history').delete().eq('id', convId);
+    fetchAll();
   };
 
   const handleSaveQuote = async () => {
@@ -420,15 +517,93 @@ export default function OrgDetailPage() {
             <div className="glass-card p-6 mb-8 border-t-4 border-blue-500">
               <h3 className="text-base font-bold text-gray-900 mb-4">บันทึกการพูดคุยใหม่</h3>
               <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div><label className="label">วันที่</label><input type="date" className="input-field text-sm" value={convForm.date} onChange={(e) => setConvForm(f => ({ ...f, date: e.target.value }))} /></div>
+                  <div><label className="label">เวลา</label><input type="time" className="input-field text-sm" value={convForm.time} onChange={(e) => setConvForm(f => ({ ...f, time: e.target.value }))} /></div>
                   <div>
                     <label className="label">ช่องทาง</label>
                     <select className="input-field text-sm" value={convForm.channel} onChange={(e) => setConvForm(f => ({ ...f, channel: e.target.value }))}>
                       {['โทรศัพท์', 'LINE', 'Email', 'พบตัว', 'Zoom/Meet', 'อื่นๆ'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label className="label">คุยกับใคร</label>
+                    <select 
+                      className="input-field text-sm"
+                      value={convForm.contact_dept} 
+                      onChange={(e) => {
+                        setConvForm(f => ({ ...f, contact_dept: e.target.value }));
+                        setShowScripts(false);
+                      }}
+                    >
+                      <option value="">- เลือกฝ่าย -</option>
+                      <option value="phone_main">📞 เบอร์กลาง {org?.phone_main ? `(${org.phone_main.split(',')[0].trim()})` : ''}</option>
+                      <option value="purchase_dept">🛒 ฝ่ายจัดซื้อ {org?.purchase_dept?.name ? `(${org.purchase_dept.name})` : ''}</option>
+                      <option value="building_dept">🏗️ ฝ่ายอาคาร {org?.building_dept?.name ? `(${org.building_dept.name})` : ''}</option>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Contact info preview */}
+                {convForm.contact_dept && (() => {
+                  const dept = convForm.contact_dept as ContactDept;
+                  const colors = CONTACT_DEPT_COLORS[dept];
+                  let contactInfo: { name?: string; phone?: string; email?: string } = {};
+                  if (dept === 'phone_main') {
+                    contactInfo = { phone: org?.phone_main || undefined, email: org?.email_main || undefined };
+                  } else if (dept === 'purchase_dept' && org?.purchase_dept) {
+                    contactInfo = { name: org.purchase_dept.name, phone: org.purchase_dept.phone, email: org.purchase_dept.email };
+                  } else if (dept === 'building_dept' && org?.building_dept) {
+                    contactInfo = { name: org.building_dept.name, phone: org.building_dept.phone, email: org.building_dept.email };
+                  }
+                  const hasInfo = contactInfo.name || contactInfo.phone || contactInfo.email;
+                  return hasInfo ? (
+                    <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-lg border text-sm mt-4" style={{ background: colors.bg, borderColor: colors.border }}>
+                      <span className="font-semibold" style={{ color: colors.text }}>{CONTACT_DEPT_LABELS[dept]}:</span>
+                      {contactInfo.name && <span className="text-gray-700">{contactInfo.name}</span>}
+                      {contactInfo.phone && contactInfo.phone.split(',').map((p, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded text-xs font-medium text-gray-700 border border-gray-200">
+                          <Phone size={11} className="text-gray-400" />{p.trim()}
+                        </span>
+                      ))}
+                      {contactInfo.email && contactInfo.email.split(',').map((e, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded text-xs font-medium text-gray-700 border border-gray-200">
+                          <Mail size={11} className="text-gray-400" />{e.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Script templates */}
+                {convForm.contact_dept && (
+                  <div className="mt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setShowScripts(!showScripts)}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                    >
+                      <Lightbulb size={15} />
+                      {showScripts ? 'ซ่อนสคริปต์ตัวอย่าง' : 'ดูสคริปต์ตัวอย่าง'}
+                      {showScripts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                    {showScripts && (
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {customScripts[convForm.contact_dept as ContactDept]?.map((tmpl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="text-left p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                            onClick={() => setActiveScript({ dept: convForm.contact_dept as ContactDept, idx, text: tmpl.script })}
+                          >
+                            <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{tmpl.label}</span>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{tmpl.script.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div><label className="label">สรุปการพูดคุย <span className="text-red-500">*</span></label><textarea className="input-field" rows={3} placeholder="สรุปเนื้อหาที่พูดคุย..." value={convForm.summary} onChange={(e) => setConvForm(f => ({ ...f, summary: e.target.value }))} /></div>
                 <div><label className="label">การดำเนินการต่อไป</label><input className="input-field text-sm" placeholder="สิ่งที่ต้องทำต่อ..." value={convForm.next_action} onChange={(e) => setConvForm(f => ({ ...f, next_action: e.target.value }))} /></div>
                 <div className="flex gap-3 mt-2">
@@ -448,7 +623,28 @@ export default function OrgDetailPage() {
               <div className="absolute left-6 top-4 bottom-4 w-px bg-gray-200" />
               <div className="flex flex-col gap-6">
                 {conversations.map((conv) => (
-                  <ConvCard key={conv.id} conv={conv} />
+                  <ConvCard 
+                    key={conv.id} 
+                    conv={conv}
+                    onEdit={() => {
+                      setEditingConvId(conv.id);
+                      setEditConvData({
+                        summary: conv.summary,
+                        next_action: conv.next_action || '',
+                        channel: conv.channel,
+                        contact_dept: conv.contact_dept || '',
+                        date: conv.date,
+                        time: (conv as any).time || '',
+                      });
+                    }}
+                    onDelete={() => handleDeleteConv(conv.id)}
+                    isEditing={editingConvId === conv.id}
+                    editData={editConvData}
+                    onEditDataChange={setEditConvData}
+                    onSaveEdit={() => handleUpdateConv(conv.id)}
+                    onCancelEdit={() => setEditingConvId(null)}
+                    savingEdit={savingEditConv}
+                  />
                 ))}
               </div>
             </div>
@@ -580,6 +776,55 @@ export default function OrgDetailPage() {
           )}
         </div>
       )}
+
+
+      {/* Teleprompter Modal */}
+      {activeScript !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Lightbulb className="text-yellow-500" /> สคริปต์สำหรับอ่าน
+              </h3>
+              <button onClick={() => setActiveScript(null)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto grow">
+              <textarea 
+                className="w-full h-full min-h-[40vh] p-4 text-xl leading-relaxed text-gray-800 bg-blue-50/30 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                value={activeScript.text}
+                onChange={(e) => setActiveScript({ ...activeScript, text: e.target.value })}
+              />
+            </div>
+            <div className="p-4 border-t border-gray-100 flex flex-wrap gap-3 justify-end items-center">
+              <button 
+                onClick={() => {
+                  const newScripts = { ...customScripts };
+                  newScripts[activeScript.dept][activeScript.idx].script = activeScript.text;
+                  setCustomScripts(newScripts);
+                  localStorage.setItem('tmk_script_templates', JSON.stringify(newScripts));
+                  alert('บันทึกแม่แบบสคริปต์เรียบร้อยแล้ว');
+                }} 
+                className="px-6 py-2.5 rounded-lg border border-blue-600 text-blue-600 font-medium hover:bg-blue-50 transition-colors mr-auto"
+              >
+                บันทึกเป็นแม่แบบใหม่
+              </button>
+              <button onClick={() => setActiveScript(null)} className="px-6 py-2.5 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors">ปิด</button>
+              <button 
+                onClick={() => {
+                  setConvForm(f => ({ ...f, summary: activeScript.text }));
+                  setActiveScript(null);
+                  setShowScripts(false);
+                }} 
+                className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                ใช้สคริปต์นี้
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -615,18 +860,116 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function ConvCard({ conv }: { conv: ConversationHistory }) {
+function ConvCard({ 
+  conv, 
+  onEdit, 
+  onDelete, 
+  isEditing, 
+  editData, 
+  onEditDataChange, 
+  onSaveEdit, 
+  onCancelEdit, 
+  savingEdit 
+}: { 
+  conv: ConversationHistory;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  isEditing?: boolean;
+  editData?: any;
+  onEditDataChange?: (data: any) => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
+  savingEdit?: boolean;
+}) {
+  const deptColors = conv.contact_dept ? CONTACT_DEPT_COLORS[conv.contact_dept] : null;
+  const deptLabel = conv.contact_dept ? CONTACT_DEPT_LABELS[conv.contact_dept] : null;
+  
+  if (isEditing && editData && onEditDataChange) {
+    return (
+      <div className="relative pl-10">
+        <div className="absolute left-0 top-3 w-3 h-3 rounded-full border-2 bg-white ml-[18px] z-10 shadow-sm border-blue-500" />
+        <div className="glass-card p-5 border-l-4 border-blue-500">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">วันที่</label>
+              <input type="date" className="input-field py-1.5 text-sm" value={editData.date} onChange={e => onEditDataChange({...editData, date: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">เวลา</label>
+              <input type="time" className="input-field py-1.5 text-sm" value={editData.time} onChange={e => onEditDataChange({...editData, time: e.target.value})} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">ช่องทาง</label>
+              <select className="input-field py-1.5 text-sm" value={editData.channel} onChange={e => onEditDataChange({...editData, channel: e.target.value})}>
+                {['โทรศัพท์', 'LINE', 'Email', 'พบตัว', 'Zoom/Meet', 'อื่นๆ'].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">ฝ่าย</label>
+              <select className="input-field py-1.5 text-sm" value={editData.contact_dept} onChange={e => onEditDataChange({...editData, contact_dept: e.target.value})}>
+                <option value="">- เลือก -</option>
+                <option value="phone_main">เบอร์กลาง</option>
+                <option value="purchase_dept">ฝ่ายจัดซื้อ</option>
+                <option value="building_dept">ฝ่ายอาคาร</option>
+              </select>
+            </div>
+          </div>
+          <div className="mb-3">
+            <label className="text-xs text-gray-500 mb-1 block">สรุป</label>
+            <textarea className="input-field text-sm" rows={3} value={editData.summary} onChange={e => onEditDataChange({...editData, summary: e.target.value})} />
+          </div>
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 mb-1 block">Next Action</label>
+            <input className="input-field py-1.5 text-sm" value={editData.next_action} onChange={e => onEditDataChange({...editData, next_action: e.target.value})} />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={onCancelEdit} className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">ยกเลิก</button>
+            <button onClick={onSaveEdit} disabled={savingEdit} className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm">
+              {savingEdit ? 'กำลังบันทึก...' : 'บันทึก'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative pl-10">
+    <div className="relative pl-10 group">
       {/* Timeline Dot */}
-      <div className="absolute left-0 top-3 w-3 h-3 rounded-full border-2 border-blue-500 bg-white ml-[18px] z-10 shadow-sm" />
+      <div className="absolute left-0 top-3 w-3 h-3 rounded-full border-2 bg-white ml-[18px] z-10 shadow-sm" style={{ borderColor: deptColors?.text || '#3B82F6' }} />
       
       <div className="glass-card p-5 hover:shadow-md transition-shadow">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <span className="badge text-xs bg-blue-50 text-blue-700 border border-blue-100">{conv.channel}</span>
-          <span className="text-xs font-medium text-gray-500 flex items-center gap-1"><Calendar size={12}/> {formatDate(conv.date)}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="badge text-xs bg-blue-50 text-blue-700 border border-blue-100">{conv.channel}</span>
+            {deptLabel && deptColors && (
+              <span 
+                className="badge text-xs border"
+                style={{ background: deptColors.bg, color: deptColors.text, borderColor: deptColors.border }}
+              >
+                {deptLabel}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
+              <Calendar size={12}/> {formatDate(conv.date)}
+              {/* @ts-ignore */}
+              {conv.time && <><Clock size={12} className="ml-1"/> {conv.time}</>}
+            </span>
+            {onEdit && onDelete && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white rounded-md shadow-sm border border-gray-100 p-0.5">
+                <button onClick={onEdit} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="แก้ไข">
+                  <Edit2 size={13} />
+                </button>
+                <button onClick={onDelete} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="ลบ">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-gray-800 leading-relaxed">{conv.summary}</p>
+        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{conv.summary}</p>
         {conv.next_action && (
           <div className="mt-4 p-3 rounded-lg text-sm bg-amber-50 text-amber-800 border border-amber-100 flex items-start gap-2">
             <span className="shrink-0 mt-0.5">👉</span> 

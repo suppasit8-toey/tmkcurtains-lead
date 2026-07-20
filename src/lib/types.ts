@@ -114,12 +114,28 @@ export const PROVINCES = [
   'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
 ];
 
+export type ContactDept = 'phone_main' | 'purchase_dept' | 'building_dept';
+
+export const CONTACT_DEPT_LABELS: Record<ContactDept, string> = {
+  phone_main: 'เบอร์กลาง',
+  purchase_dept: 'ฝ่ายจัดซื้อ',
+  building_dept: 'ฝ่ายอาคาร',
+};
+
+export const CONTACT_DEPT_COLORS: Record<ContactDept, { bg: string; text: string; border: string }> = {
+  phone_main: { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE' },
+  purchase_dept: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0' },
+  building_dept: { bg: '#FFF7ED', text: '#EA580C', border: '#FED7AA' },
+};
+
 export interface ConversationHistory {
   id: string;
   org_id: string;
   user_id: string;
   date: string;
+  time?: string | null;
   channel: string;
+  contact_dept?: ContactDept | null;
   summary: string;
   next_action?: string;
   created_at: string;

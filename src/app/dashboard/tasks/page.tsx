@@ -155,9 +155,9 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-gray-900">รายการงาน</h2>
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <h2 className="text-xl font-bold text-gray-900 whitespace-nowrap">รายการงาน</h2>
           {isManager && (
             <select 
               className="input-field py-1.5 px-3 text-sm min-w-[150px] bg-blue-50 border-blue-200 text-blue-700" 
@@ -266,7 +266,7 @@ export default function TasksPage() {
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">🔥</div>
-            <h3 className="text-lg font-bold text-gray-900">งานวันนี้ / ค้างจัด</h3>
+            <h3 className="text-lg font-bold text-gray-900 whitespace-nowrap">งานวันนี้ & งานคงค้าง</h3>
             <span className="badge bg-gray-100 text-gray-600 ml-auto">{todayTasks.length}</span>
           </div>
 
