@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ListTodo,
-  Settings
+  Settings,
+  MessageSquareText
 } from 'lucide-react';
 import { useState } from 'react';
 import Logo from '@/components/Logo';
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/dashboard/organizations', label: 'องค์กร', icon: Building2 },
   { href: '/dashboard/quotations', label: 'ใบเสนอราคา', icon: FileText },
   { href: '/dashboard/orders', label: 'งานเสร็จสิ้น', icon: CheckCircle2 },
+  { href: '/dashboard/scripts', label: 'สคริปต์ & โปร', icon: MessageSquareText },
   { href: '/dashboard/settings', label: 'ตั้งค่า', icon: Settings },
 ];
 

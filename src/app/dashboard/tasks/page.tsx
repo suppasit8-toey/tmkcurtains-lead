@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { type Task, type Profile } from '@/lib/types';
 import { isToday, isThisWeek, parseISO, isPast, isTomorrow } from 'date-fns';
-import { Plus, Check, Circle, Calendar as CalIcon, Building2, Trash2, Navigation } from 'lucide-react';
+import { PROVINCES, STATUS_LABELS } from '@/lib/types';
+import { Plus, Check, Circle, Calendar as CalIcon, Building2, Trash2, Navigation, Filter } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
 
@@ -13,7 +14,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
-  const [allOrgs, setAllOrgs] = useState<{id: string, name: string}[]>([]);
+  const [allOrgs, setAllOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState<string>('all');
   
@@ -26,6 +27,12 @@ export default function TasksPage() {
   const [assigneeId, setAssigneeId] = useState('');
   const [savingTask, setSavingTask] = useState(false);
 
+  // Organization filters
+  const [showOrgFilters, setShowOrgFilters] = useState(false);
+  const [orgFilterProvince, setOrgFilterProvince] = useState('');
+  const [orgFilterStatus, setOrgFilterStatus] = useState('');
+  const [orgFilterDistance, setOrgFilterDistance] = useState('');
+
   useEffect(() => {
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +42,7 @@ export default function TasksPage() {
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('profiles').select('*').order('full_name', { ascending: true }),
         supabase.from('tasks').select('*, organizations(name)').order('due_date', { ascending: true }),
-        supabase.from('organizations').select('id, name').order('name', { ascending: true })
+        supabase.from('organizations').select('id, name, province, status, distance_km').order('name', { ascending: true })
       ]);
 
       setProfile(profRes.data);
@@ -140,6 +147,16 @@ export default function TasksPage() {
 
   if (loading) return <div className="p-8 text-center text-gray-500">กำลังโหลด...</div>;
 
+  const filteredOrgs = allOrgs.filter(org => {
+    if (orgFilterProvince && org.province !== orgFilterProvince) return false;
+    if (orgFilterStatus && org.status !== orgFilterStatus) return false;
+    if (orgFilterDistance) {
+      if (org.distance_km === null || org.distance_km === undefined) return false;
+      if (org.distance_km > parseInt(orgFilterDistance)) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="animate-fade-in max-w-5xl mx-auto pb-20">
       {/* Friendly Header */}
@@ -184,10 +201,52 @@ export default function TasksPage() {
         <div className="glass-card p-6 mb-8 animate-fade-in border-2 border-blue-100">
           <form onSubmit={handleAddTask} className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label className="label">องค์กร (เพื่อดึงชื่องาน)</label>
+              <div className="flex-1 flex flex-col">
+                <div className="flex justify-between items-end mb-1">
+                  <label className="label !mb-0">องค์กร (เพื่อดึงชื่องาน)</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowOrgFilters(!showOrgFilters)} 
+                    className={`text-xs flex items-center gap-1 transition-colors ${showOrgFilters || orgFilterProvince || orgFilterStatus || orgFilterDistance ? 'text-blue-600 font-medium' : 'text-gray-400 hover:text-blue-500'}`}
+                  >
+                    <Filter size={12} />
+                    {showOrgFilters ? 'ซ่อนตัวกรอง' : 'กรององค์กร'}
+                    {(orgFilterProvince || orgFilterStatus || orgFilterDistance) && (
+                      <span className="w-2 h-2 rounded-full bg-blue-500 ml-0.5"></span>
+                    )}
+                  </button>
+                </div>
+                
+                {showOrgFilters && (
+                  <div className="flex gap-2 mb-2 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg text-sm animate-fade-in shadow-inner">
+                    <select 
+                      className="input-field py-1.5 px-2 text-xs flex-1 bg-white border-gray-200" 
+                      value={orgFilterProvince} onChange={e => setOrgFilterProvince(e.target.value)}
+                    >
+                      <option value="">ทุกจังหวัด</option>
+                      {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <select 
+                      className="input-field py-1.5 px-2 text-xs flex-1 bg-white border-gray-200" 
+                      value={orgFilterStatus} onChange={e => setOrgFilterStatus(e.target.value)}
+                    >
+                      <option value="">ทุกสถานะ</option>
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                    <select 
+                      className="input-field py-1.5 px-2 text-xs flex-1 bg-white border-gray-200" 
+                      value={orgFilterDistance} onChange={e => setOrgFilterDistance(e.target.value)}
+                    >
+                      <option value="">ทุกระยะทาง</option>
+                      <option value="10">ไม่เกิน 10 กม.</option>
+                      <option value="50">ไม่เกิน 50 กม.</option>
+                      <option value="100">ไม่เกิน 100 กม.</option>
+                    </select>
+                  </div>
+                )}
+
                 <select 
-                  className="input-field py-2.5" 
+                  className="input-field py-2.5 flex-1" 
                   value={newTaskOrgId}
                   onChange={(e) => {
                     const orgId = e.target.value;
@@ -197,7 +256,7 @@ export default function TasksPage() {
                   }}
                 >
                   <option value="">- เลือกองค์กร (ไม่บังคับ) -</option>
-                  {allOrgs.map(o => (
+                  {filteredOrgs.map(o => (
                     <option key={o.id} value={o.id}>{o.name}</option>
                   ))}
                 </select>
