@@ -14,10 +14,11 @@ import MultiInput from '@/components/MultiInput';
 import {
   ArrowLeft, Edit2, Trash2, Save, X, Plus, Phone, Mail, Clock,
   MessageSquare, FileText, CheckCircle2, Building2, Users, Lightbulb,
-  Calendar, ChevronDown, ChevronUp, MapPin, Navigation, Map as MapIcon, ExternalLink
+  Calendar, ChevronDown, ChevronUp, MapPin, Navigation, Map as MapIcon, ExternalLink, Gift
 } from 'lucide-react';
 import { formatDate, formatCurrency, extractMapCoordinates, calculateDistance, fetchProvinceFromCoords, TMK_LAT, TMK_LNG } from '@/lib/utils';
 import { PROVINCES } from '@/lib/types';
+import { SCRIPTS_DATA, PROMOTIONS_DATA } from '@/app/dashboard/scripts/page';
 
 const ALL_STATUSES: OrgStatus[] = ['new_lead','contacted','presented','quoted','negotiating','won','lost','on_hold'];
 const STATUS_LABEL_MAP = STATUS_LABELS;
@@ -103,11 +104,21 @@ export default function OrgDetailPage() {
   const [showScripts, setShowScripts] = useState(false);
   const [activeScript, setActiveScript] = useState<{ dept: ContactDept; idx: number; text: string } | null>(null);
   const [customScripts, setCustomScripts] = useState(SCRIPT_TEMPLATES);
+  const [localScripts, setLocalScripts] = useState(SCRIPTS_DATA);
+  const [localPromos, setLocalPromos] = useState(PROMOTIONS_DATA);
 
   useEffect(() => {
     const saved = localStorage.getItem('tmk_script_templates');
     if (saved) {
       try { setCustomScripts(JSON.parse(saved)); } catch (e) {}
+    }
+    const savedScripts = localStorage.getItem('tmk_scripts_data');
+    if (savedScripts) {
+      try { setLocalScripts(JSON.parse(savedScripts)); } catch(e) {}
+    }
+    const savedPromos = localStorage.getItem('tmk_promotions_data');
+    if (savedPromos) {
+      try { setLocalPromos(JSON.parse(savedPromos)); } catch(e) {}
     }
   }, []);
   const [editingConvId, setEditingConvId] = useState<string | null>(null);
@@ -576,34 +587,78 @@ export default function OrgDetailPage() {
                 })()}
 
                 {/* Script templates */}
-                {convForm.contact_dept && (
-                  <div className="mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => setShowScripts(!showScripts)}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
-                    >
-                      <Lightbulb size={15} />
-                      {showScripts ? 'ซ่อนสคริปต์ตัวอย่าง' : 'ดูสคริปต์ตัวอย่าง'}
-                      {showScripts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                    {showScripts && (
-                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {customScripts[convForm.contact_dept as ContactDept]?.map((tmpl, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            className="text-left p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
-                            onClick={() => setActiveScript({ dept: convForm.contact_dept as ContactDept, idx, text: tmpl.script })}
-                          >
-                            <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 transition-colors">{tmpl.label}</span>
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{tmpl.script.replace(/\\n/g, ' ').slice(0, 80)}...</p>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="mt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowScripts(!showScripts)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                  >
+                    <Lightbulb size={15} />
+                    {showScripts ? 'ซ่อนตัวอย่างข้อความ' : 'ดูสคริปต์ & โปรโมชั่น'}
+                    {showScripts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {showScripts && (
+                    <div className="mt-3 space-y-4 animate-fade-in">
+                      {/* Dept Scripts */}
+                      {convForm.contact_dept && customScripts[convForm.contact_dept as ContactDept] && customScripts[convForm.contact_dept as ContactDept].length > 0 && (
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                          <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1"><Users size={12}/> ตามแผนกที่ติดต่อ</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {customScripts[convForm.contact_dept as ContactDept].map((tmpl, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                className="text-left p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 transition-all group shadow-sm"
+                                onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.script : tmpl.script }))}
+                              >
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors">{tmpl.label}</span>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.script.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Category Scripts & Promos */}
+                      {org?.category && (
+                        <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                          <p className="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide flex items-center gap-1"><Building2 size={12}/> แนะนำสำหรับ {categories.find(c => c.value === org.category)?.label || org.category}</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {localScripts.filter(s => {
+                              const cat = categories.find(c => c.value === org.category);
+                              return s.category === org.category || (cat && s.category === cat.label);
+                            }).map(tmpl => (
+                              <button
+                                key={tmpl.id}
+                                type="button"
+                                className="text-left p-3 rounded-lg border border-blue-200 bg-white hover:border-blue-400 hover:shadow-md transition-all group shadow-sm"
+                                onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.content : tmpl.content }))}
+                              >
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors flex items-center gap-1.5"><MessageSquare size={13} className="text-blue-500"/> {tmpl.title}</span>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.content.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                              </button>
+                            ))}
+                            
+                            {localPromos.filter(p => {
+                              const cat = categories.find(c => c.value === org.category);
+                              return p.category === org.category || (cat && p.category === cat.label);
+                            }).map(tmpl => (
+                              <button
+                                key={tmpl.id}
+                                type="button"
+                                className="text-left p-3 rounded-lg border border-rose-200 bg-white hover:border-rose-400 hover:shadow-md transition-all group shadow-sm"
+                                onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.content : tmpl.content }))}
+                              >
+                                <span className="text-sm font-bold text-gray-800 group-hover:text-rose-600 transition-colors flex items-center gap-1.5"><Gift size={13} className="text-rose-500"/> {tmpl.title}</span>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.content.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div><label className="label">สรุปการพูดคุย <span className="text-red-500">*</span></label><textarea className="input-field" rows={3} placeholder="สรุปเนื้อหาที่พูดคุย..." value={convForm.summary} onChange={(e) => setConvForm(f => ({ ...f, summary: e.target.value }))} /></div>
                 <div><label className="label">การดำเนินการต่อไป</label><input className="input-field text-sm" placeholder="สิ่งที่ต้องทำต่อ..." value={convForm.next_action} onChange={(e) => setConvForm(f => ({ ...f, next_action: e.target.value }))} /></div>
                 <div className="flex gap-3 mt-2">
