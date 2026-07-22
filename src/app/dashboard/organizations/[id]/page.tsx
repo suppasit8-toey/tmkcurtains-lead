@@ -170,35 +170,63 @@ export default function OrgDetailPage() {
   };
 
   const handleSaveConv = async () => {
-    setSavingConv(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('conversation_history').insert({
-      ...convForm,
-      contact_dept: convForm.contact_dept || null,
-      time: convForm.time || null,
-      org_id: id,
-      user_id: user!.id,
-    });
-    setConvForm({ date: new Date().toISOString().split('T')[0], time: '09:27', channel: 'โทรศัพท์', contact_dept: '', summary: '', next_action: '' });
-    setShowConvForm(false);
-    setShowScripts(false);
-    fetchAll();
-    setSavingConv(false);
+    try {
+      setSavingConv(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('conversation_history').insert({
+        ...convForm,
+        contact_dept: convForm.contact_dept || null,
+        time: convForm.time || null,
+        org_id: id,
+        user_id: user!.id,
+      });
+
+      if (error) {
+        console.error("Error saving conversation:", error);
+        alert(`เกิดข้อผิดพลาดในการบันทึก: ${JSON.stringify(error)}`);
+        setSavingConv(false);
+        return;
+      }
+
+      setConvForm({ date: new Date().toISOString().split('T')[0], time: '09:27', channel: 'โทรศัพท์', contact_dept: '', summary: '', next_action: '' });
+      setShowConvForm(false);
+      setShowScripts(false);
+      fetchAll();
+      setSavingConv(false);
+    } catch (err: any) {
+      console.error("Unexpected error:", err);
+      alert(`เกิดข้อผิดพลาด: ${err.message || 'Unknown error'}`);
+      setSavingConv(false);
+    }
   };
 
   const handleUpdateConv = async (convId: string) => {
-    setSavingEditConv(true);
-    await supabase.from('conversation_history').update({
-      summary: editConvData.summary,
-      next_action: editConvData.next_action || null,
-      channel: editConvData.channel,
-      contact_dept: editConvData.contact_dept || null,
-      date: editConvData.date,
-      time: editConvData.time || null,
-    }).eq('id', convId);
-    setEditingConvId(null);
-    fetchAll();
-    setSavingEditConv(false);
+    try {
+      setSavingEditConv(true);
+      const { error } = await supabase.from('conversation_history').update({
+        summary: editConvData.summary,
+        next_action: editConvData.next_action || null,
+        channel: editConvData.channel,
+        contact_dept: editConvData.contact_dept || null,
+        date: editConvData.date,
+        time: editConvData.time || null,
+      }).eq('id', convId);
+
+      if (error) {
+        console.error("Error updating conversation:", error);
+        alert(`เกิดข้อผิดพลาดในการแก้ไข: ${error.message}`);
+        setSavingEditConv(false);
+        return;
+      }
+
+      setEditingConvId(null);
+      fetchAll();
+      setSavingEditConv(false);
+    } catch (err: any) {
+      console.error("Unexpected error:", err);
+      alert(`เกิดข้อผิดพลาด: ${err.message || 'Unknown error'}`);
+      setSavingEditConv(false);
+    }
   };
 
   const handleDeleteConv = async (convId: string) => {
@@ -612,7 +640,7 @@ export default function OrgDetailPage() {
                                 onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.script : tmpl.script }))}
                               >
                                 <span className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors">{tmpl.label}</span>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.script.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                                <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap leading-relaxed">{tmpl.script.replace(/\\n/g, '\n')}</p>
                               </button>
                             ))}
                           </div>
@@ -635,7 +663,7 @@ export default function OrgDetailPage() {
                                 onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.content : tmpl.content }))}
                               >
                                 <span className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors flex items-center gap-1.5"><MessageSquare size={13} className="text-blue-500"/> {tmpl.title}</span>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.content.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                                <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap leading-relaxed">{tmpl.content.replace(/\\n/g, '\n')}</p>
                               </button>
                             ))}
                             
@@ -650,7 +678,7 @@ export default function OrgDetailPage() {
                                 onClick={() => setConvForm(f => ({ ...f, summary: f.summary ? f.summary + '\n\n' + tmpl.content : tmpl.content }))}
                               >
                                 <span className="text-sm font-bold text-gray-800 group-hover:text-rose-600 transition-colors flex items-center gap-1.5"><Gift size={13} className="text-rose-500"/> {tmpl.title}</span>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{tmpl.content.replace(/\\n/g, ' ').slice(0, 80)}...</p>
+                                <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap leading-relaxed">{tmpl.content.replace(/\\n/g, '\n')}</p>
                               </button>
                             ))}
                           </div>
